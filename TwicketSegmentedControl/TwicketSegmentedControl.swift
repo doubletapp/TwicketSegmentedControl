@@ -244,7 +244,7 @@ open class TwicketSegmentedControl: UIControl {
         moveToNearestPoint(basedOn: tapGesture)
     }
 
-    @objc private func didPan(panGesture: UIPanGestureRecognizer) {
+    @objc public func didPan(panGesture: UIPanGestureRecognizer) {
         switch panGesture.state {
         case .cancelled, .ended, .failed:
             moveToNearestPoint(basedOn: panGesture, velocity: panGesture.velocity(in: sliderView))
@@ -254,12 +254,63 @@ open class TwicketSegmentedControl: UIControl {
             let location = panGesture.location(in: self)
             sliderView.center.x = location.x - correction
         case .possible: ()
-            
+        
         default:
             break
         }
     }
+    
+    var startPosition: CGFloat = 0
+    
+    open func moveSlider(percent: CGFloat) {
+        
+        sliderView.center.x = startPosition + self.containerView.frame.width/2/100*percent + sliderView.frame.width/2
+    }
+    
+    open func didGesture(gestureState: UIPanGestureRecognizer.State, move: CGFloat, velocity: CGPoint) {
 
+        if sliderView.frame.origin.x >= sliderView.frame.width && gestureState == .changed && move > 0 {
+            return
+        }
+        else {
+            switch gestureState {
+            case .cancelled, .ended, .failed:
+                moveToNearestPoint(basedOn: sliderView.center, velocity: velocity)
+            case .began:
+                startPosition = sliderView.center.x
+            case .changed:
+                sliderView.center.x = startPosition + self.frame.width/2/100*move
+            case .possible: ()
+                
+            default:
+                break
+            }
+        }
+    }
+    
+    
+    public func moveToNearestPoint(velocity: CGPoint? = nil) {
+        var loc = sliderView.frame.origin
+        if let velocity = velocity {
+            let offset = -velocity.x / 12
+            loc.x += offset
+        }
+        let index = segmentIndex(for: loc)
+        move(to: index)
+        delegate?.didSelect(index)
+    }
+    
+
+    func moveToNearestPoint(basedOn location: CGPoint, velocity: CGPoint? = nil) {
+        var loc = location
+        if let velocity = velocity {
+            let offset = -velocity.x / 12
+            loc.x += offset
+        }
+        let index = segmentIndex(for: loc)
+        move(to: index)
+        delegate?.didSelect(index)
+    }
     // MARK: Slider position
 
     private func moveToNearestPoint(basedOn gesture: UIGestureRecognizer, velocity: CGPoint? = nil) {
